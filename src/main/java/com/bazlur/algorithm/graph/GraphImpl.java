@@ -1,16 +1,13 @@
 package com.bazlur.algorithm.graph;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * @author Bazlur Rahman Rokon
  * @since 12/31/16.
  */
-public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
+public class GraphImpl<T extends Comparable<T>> implements Graph<T> {
 
 	public enum State {
 		UNVISITED,
@@ -20,14 +17,20 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 
 	private ArrayList<Vertex> vertexList;
 	private ArrayList<Edge> edgeList;
+	private boolean directed;
 
 	public List<Vertex> getVertices() {
 		return vertexList;
 	}
 
-	public UnDirectedGraph() {
+	public GraphImpl(boolean directed) {
+		this.directed = directed;
 		this.vertexList = new ArrayList<>();
 		this.edgeList = new ArrayList<>();
+	}
+
+	public GraphImpl() {
+		this(false);
 	}
 
 	public void addEdge(T x, T y) {
@@ -36,12 +39,12 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 	}
 
 	@Override
-	public int v() {
+	public int getTotalVertex() {
 		return vertexList.size();
 	}
 
 	@Override
-	public int e() {
+	public int getTotalEdge() {
 		return edgeList.size();
 	}
 
@@ -49,7 +52,7 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 	public int degree(T v) {
 
 		return findVertex(v)
-			.map(vertex -> vertex.getAdjacent().size())
+			.map(vertex -> vertex.getAdjacentList().size())
 			.orElseThrow(() -> new IllegalArgumentException(v + " is not a vertex of this graph"));
 	}
 
@@ -66,7 +69,7 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 		validateVertex(w);
 
 		return findVertex(v)
-			.map(vertex -> vertex.getAdjacent()
+			.map(vertex -> vertex.getAdjacentList()
 				.stream()
 				.anyMatch(vertex1 -> vertex1.getValue().compareTo(w) == 0))
 			.orElseGet(() -> Boolean.FALSE);
@@ -91,14 +94,14 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 		validateVertex(value);
 
 		return findVertex(value)
-			.map(vertex -> vertex.getAdjacent()
+			.map(vertex -> vertex.getAdjacentList()
 				.stream()
 				.map(Vertex::getValue)
 				.collect(Collectors.toList()))
 			.orElseGet(Collections::emptyList);
 	}
 
-	private Optional<Vertex> findVertex(T value) {
+	public Optional<Vertex> findVertex(T value) {
 
 		return vertexList.stream()
 			.filter(vertex -> vertex.getValue().compareTo(value) == 0)
@@ -121,8 +124,8 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 	}
 
 	class Vertex {
-		T value;
-		ArrayList<Vertex> adjacent;
+		private T value;
+		private List<Vertex> adjacent;
 
 		State state;
 
@@ -148,28 +151,43 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 			adjacent.add(vertex);
 		}
 
-		public ArrayList<Vertex> getAdjacent() {
+		public List<Vertex> getAdjacentList() {
 			return adjacent;
 		}
 
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			Vertex vertex = (Vertex) o;
+			return Objects.equals(value, vertex.value);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(value);
+		}
 
 		@Override
 		public String toString() {
-
-			return ("Vertex: " + value + "-> "
-				+ adjacent.stream()
+			String neighbour = adjacent.stream()
 				.map(vertex -> vertex.getValue().toString())
-				.collect(Collectors.joining(", ")));
+				.collect(Collectors.joining(", "));
+
+			return isNotEmpty(neighbour) ? "Vertex: " + value + " -> " + neighbour : "Vertex: " + value;
 		}
 
 	}
 
+	private boolean isNotEmpty(String neighbour) {
+		return neighbour != null && !neighbour.isEmpty();
+	}
+
 	class Edge {
 		private Vertex x;
-
 		private Vertex y;
 
-		public Edge(final T x, final T y) {
+		Edge(final T x, final T y) {
 			this.x = findVertex(x)
 				.map(vertex -> vertex)
 				.orElseGet(() -> createNewAndAddToList(x));
@@ -179,7 +197,9 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 				.orElseGet(() -> createNewAndAddToList(y));
 
 			this.x.addNeighbour(this.y);
-			this.y.addNeighbour(this.x);
+			if (!directed) {
+				this.y.addNeighbour(this.x);
+			}
 		}
 
 		private Vertex createNewAndAddToList(T x) {
@@ -192,6 +212,5 @@ public class UnDirectedGraph<T extends Comparable<T>> implements Graph<T> {
 		public String toString() {
 			return "Edge: " + x.getValue() + " <-> " + y.getValue() + "\n";
 		}
-
 	}
 }

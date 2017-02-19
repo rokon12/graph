@@ -9,9 +9,9 @@ import java.util.List;
 public interface Graph<T extends Comparable<T>> {
 	void addEdge(T v, T w);
 
-	int v();
+	int getTotalVertex();
 
-	int e();
+	int getTotalEdge();
 
 	int degree(T v);
 
